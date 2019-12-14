@@ -1,8 +1,6 @@
 """
 Reading US companies financial data from SEC.gov
 
-
-author: Nima Chamanara
 """
 
 __all__ = ["SECReader"]
@@ -14,20 +12,14 @@ import time
 import util
 
 
-class SymbolNotFoundError(IOError):
-    pass
-
-
 class SECReader:
     """Reads, stores and updates US stock financial data from sec.gov. 
     """
     
-    def __init__(self, data_folder):
+    def __init__(self):
         self.driver = webdriver.Firefox()
         self.url_base = "https://www.sec.gov"
-        self.data_folder = data_folder           # company financial data will be written in this folder
-        assert os.path.exists(data_folder)
-        
+
     def _search_company_ticker(self, stock_symbol):
         """Opens a browser page to the SEC's Edgar's company search page and look's 
         up the stock symbol.
@@ -45,7 +37,7 @@ class SECReader:
         h1_tags = self.driver.find_elements_by_tag_name("h1")
         if len(h1_tags) > 0:
             if h1_tags[0].get_attribute("innerHTML").startswith("No matching Ticker Symbol."):
-                raise SymbolNotFoundError
+                raise util.SymbolNotFoundError
 
     def _click_next_page(self):
         """On the company documents page finds and clicks the next button.
@@ -180,7 +172,7 @@ class SECReader:
             accession number.
             
         """
-        access_num = util.extrace_text_between_expressions(doc_description, "Acc-no:", "&nbsp")
+        access_num = util.extract_text_between_expressions(doc_description, "Acc-no:", "&nbsp")
         
         return access_num.strip()
     
@@ -198,7 +190,7 @@ class SECReader:
         str 
             CIK number.
         """
-        cik_num = util.extrace_text_between_expressions(company_info, "CIK=", "&amp")
+        cik_num = util.extract_text_between_expressions(company_info, "CIK=", "&amp")
         
         return cik_num.strip()
     
