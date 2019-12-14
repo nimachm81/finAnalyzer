@@ -11,6 +11,8 @@ from selenium import webdriver
 import os
 import datetime
 import time
+import util
+
 
 class SymbolNotFoundError(IOError):
     pass
@@ -44,8 +46,7 @@ class SECReader:
         if len(h1_tags) > 0:
             if h1_tags[0].get_attribute("innerHTML").startswith("No matching Ticker Symbol."):
                 raise SymbolNotFoundError
-    
-    
+
     def _click_next_page(self):
         """On the company documents page finds and clicks the next button.
         
@@ -69,7 +70,7 @@ class SECReader:
         accession number). It also finds the company info including its CIK number. 
         The CIK and accession numbers can then be used to retrieve 10-Q forms.
         
-        returns:
+        returns
         ----------
         company_info_and_docs: dict
             contains company info, address, and all 10-Q financial doc information found on the
@@ -128,9 +129,9 @@ class SECReader:
         date: datetime.date
             Find documents going back to this date.
             
-        returns:
+        returns
         ----------
-        company_info_and_docs: dict
+        : dict
             contains company info, and 10-Q form dates and descriptions.
             
         """
@@ -138,7 +139,7 @@ class SECReader:
         company_info_and_docs = None
         time.sleep(5)
         
-        while(True):
+        while True:
             company_info_on_this_page = self._find_quarterly_financial_reports_on_docs_page()
             time.sleep(5)
             
@@ -162,7 +163,7 @@ class SECReader:
                 break
             
         return company_info_and_docs
-    
+
     def _get_accession_number(self, doc_description):
         """It retrieves the accession number from the document description string.
         
@@ -179,19 +180,12 @@ class SECReader:
             accession number.
             
         """
-        ind_start = doc_description.find("Acc-no:")
-        assert ind_start >= 0
-        ind_start += len("Acc-no:")
-        
-        ind_end = doc_description.find("&nbsp", ind_start)
-        assert ind_end >= 0
-        
-        access_num = doc_description[ind_start:ind_end]
+        access_num = util.extrace_text_between_expressions(doc_description, "Acc-no:", "&nbsp")
         
         return access_num.strip()
     
     def _get_cik_number(self, company_info):
-        """It reytreives the CIK number out of the company info string.
+        """It retreives the CIK number out of the company info string.
         
         parameters
         ----------
@@ -203,17 +197,8 @@ class SECReader:
         ----------
         str 
             CIK number.
-            
-        TODO: VERIFY CIK NUMBER IS CORRECT
         """
-        ind_start = company_info.find("CIK=")
-        assert ind_start >= 0
-        ind_start += len("Acc-no:")
-        
-        ind_end = company_info.find("&amp", ind_start)
-        assert ind_end >= 0
-        
-        cik_num = company_info[ind_start:ind_end]    
+        cik_num = util.extrace_text_between_expressions(company_info, "CIK=", "&amp")
         
         return cik_num.strip()
     
@@ -232,13 +217,9 @@ class SECReader:
             processed data including CIK number of the company and accession numbers of the financial
             documents.
         """
-        company_info_and_docs_processed = {}
-        
-        company_info_and_docs_processed["info"] = \
-            {"CIK": self._get_cik_number(company_info_and_docs["info"])}
-            
-        company_info_and_docs_processed["docs"] = []
-        
+        company_info_and_docs_processed = {"info": {"CIK": self._get_cik_number(company_info_and_docs["info"])},
+                                           "docs": []}
+
         docs = company_info_and_docs["docs"]
         processed_docs = company_info_and_docs_processed["docs"]
         
@@ -274,8 +255,7 @@ class SECReader:
             self._process_company_info_and_docs(company_info_and_docs)
         
         return company_info_and_docs_processed
-        
-        
+
     def _open_interactive_document_page(self, cik_num, acc_num):
         """It uses the company CIK number and the document accession number to open the interactive
         page of the document (if interactive data exists).
@@ -293,8 +273,7 @@ class SECReader:
             format(str(int(cik_num)), acc_num)
             
         self.driver.get(url)
-        
-        
+
     def _get_raw_quarterly_financial_statements_from_the_interactive_page(self):
         """Assuming the interactive quarterly report is open in the browser, it sifts through and
         finds the financial statements.
@@ -303,12 +282,6 @@ class SECReader:
         --------
         dict
             financial statements in araw html tables
-            
-        todo
-        --------
-        1- read the cover data as well
-        2- add the title of each financial statement as dictionary keys
-        
         """
         # financial statements button
         fs_element = self.driver.find_element_by_partial_link_text("Financial Statements")
@@ -330,14 +303,14 @@ class SECReader:
 
         for i in range(len(fs_list)):
             fs_list[i].click()
+            title = fs_list[i].find_element_by_tag_name("a").get_attribute("innerHTML")
             
             time.sleep(5)
             
             # financial statements data
             fs_data = fs_element.find_elements_by_xpath("../../../../../*")
-            print(len(fs_data))
+            assert len(fs_data) == 2
             
-            financial_statements[i] = fs_data[1].get_attribute('outerHTML')
+            financial_statements[title] = fs_data[1].get_attribute('outerHTML')
         
         return financial_statements
-    
