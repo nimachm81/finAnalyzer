@@ -21,3 +21,31 @@ class SECFileOp:
         self.data_folder = data_folder
         assert os.path.exists(data_folder)
 
+    def _company_base_folder_exists(self, symbol):
+        """Checks whether the company's base folder exists.
+
+        parameters
+        --------
+        symbol: str
+            The stock symbol, for example "aapl" for Apple Inc.
+
+        returns
+        --------
+        :bool
+            True: if base folder exists, False: otherwise
+        """
+        dir_path = os.path.join(self.data_folder, symbol)
+        return os.path.exists(dir_path)
+
+    def _create_company_base_folder(self, symbol):
+        """Creates the company's base folder if it does not already exist.
+
+        parameters
+        --------
+        symbol: str
+            The stock symbol, for example "aapl" for Apple Inc.
+        """
+        if not self._company_base_folder_exists(symbol):
+            dir_path = os.path.join(self.data_folder, symbol)
+            os.mkdir(dir_path)
+
