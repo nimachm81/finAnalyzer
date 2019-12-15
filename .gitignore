@@ -113,6 +113,8 @@ credentials/
 *.py~
 
 
-
+# pyCharm
+.idea/
+.DS_Store
 
 
