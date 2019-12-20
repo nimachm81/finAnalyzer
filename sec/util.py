@@ -11,6 +11,10 @@ class SymbolNotFoundError(IOError):
     pass
 
 
+class BadFileVersionError(IOError):
+    pass
+
+
 def extract_text_between_expressions(input_str, from_str, to_str):
     """Find the text between from_str to to_str, excluding from_str
     and to_str. Raises an error if from_expr and to_expr are not found.

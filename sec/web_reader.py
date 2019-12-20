@@ -3,16 +3,16 @@ Reading US companies financial data from SEC.gov
 
 """
 
-__all__ = ["SECReader"]
+__all__ = ["SECWebReader"]
 
 from selenium import webdriver
 import os
 import datetime
 import time
-import util
+import sec.util as util
 
 
-class SECReader:
+class SECWebReader:
     """Reads, stores and updates US stock financial data from sec.gov. 
     """
     
@@ -209,7 +209,7 @@ class SECReader:
             processed data including CIK number of the company and accession numbers of the financial
             documents.
         """
-        company_info_and_docs_processed = {"info": {"CIK": self._get_cik_number(company_info_and_docs["info"])},
+        company_info_and_docs_processed = {"info": {"cik": self._get_cik_number(company_info_and_docs["info"])},
                                            "docs": []}
 
         docs = company_info_and_docs["docs"]
@@ -217,7 +217,7 @@ class SECReader:
         
         for i in range(len(docs)):
             processed_docs.append({"date": datetime.date.fromisoformat(docs[i]["date"]),
-                                   "acc-no": self._get_accession_number(docs[i]["description"]),
+                                   "acc_num": self._get_accession_number(docs[i]["description"]),
                                    "is_interactive": docs[i]["is_interactive"]})
                     
         return company_info_and_docs_processed
@@ -306,3 +306,21 @@ class SECReader:
             financial_statements[title] = fs_data[1].get_attribute('outerHTML')
         
         return financial_statements
+
+    def get_raw_quarterly_financial_statements(self, cik_num, acc_num):
+        """Open the interactive quarterly report page and extract financial statements.
+
+        parameters
+        --------
+        cik_num: str
+            company CIK number
+        acc_num: str
+            file accession number
+
+        returns
+        --------
+        :dict
+            financial statements
+        """
+        self._open_interactive_document_page(cik_num, acc_num)
+        return self._get_raw_quarterly_financial_statements_from_the_interactive_page()
