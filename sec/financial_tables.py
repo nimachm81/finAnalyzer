@@ -155,3 +155,4 @@ class SECTableReader:
                 break
 
         return rows
+
