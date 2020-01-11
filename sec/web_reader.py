@@ -6,6 +6,7 @@ Reading US companies financial data from SEC.gov
 __all__ = ["SECWebReader"]
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
 import os
 import datetime
 import time
@@ -20,6 +21,36 @@ class SECWebReader:
         self.driver = webdriver.Firefox()
         self.url_base = "https://www.sec.gov"
 
+    def _open_url_with_retry(self, url, timeout=10, num_retry=3, timeout_grow_factor=2.0):
+        """tries to open the url wirh the requested number of retries. raises PageLoadError
+        if failed after multiple retries.
+
+        parameters
+        --------
+        url: str
+        timeout: int
+            timeout in seconds
+        num_retry: int
+            number of retries
+        timeout_grow_factor: float
+            the timeout grows by this factor on each retry
+        """
+        self.driver.set_page_load_timeout(timeout)
+        n_tries = 0
+
+        while True:
+            try:
+                self.driver.get(url)
+            except TimeoutException:
+                print("Page timed out")
+                n_tries += 1
+                timeout *= timeout_grow_factor
+                self.driver.set_page_load_timeout(timeout)
+                if n_tries > num_retry:
+                    raise util.PageLoadError()
+            else:
+                break
+
     def _search_company_ticker(self, stock_symbol):
         """Opens a browser page to the SEC's Edgar's company search page and look's 
         up the stock symbol.
@@ -31,12 +62,34 @@ class SECWebReader:
         """
         url = self.url_base + \
             "/cgi-bin/browse-edgar?CIK={}&owner=exclude&action=getcompany&Find=Search".\
-                format(stock_symbol)
-        self.driver.get(url)
+            format(stock_symbol)
+
+        self._open_url_with_retry(url)
     
         h1_tags = self.driver.find_elements_by_tag_name("h1")
         if len(h1_tags) > 0:
             if h1_tags[0].get_attribute("innerHTML").startswith("No matching Ticker Symbol."):
+                raise util.SymbolNotFoundError
+
+    def _search_financial_forms_by_cik(self, cik, form_type):
+        """Opens a browser page to the SEC's Edgar's company search page and searches for the specified form type.
+
+        parameters
+        --------
+        cik: str
+            CIK number of the company
+        form_type: str
+            financial form type (for example "10-Q")
+        """
+        url = self.url_base + \
+            "/cgi-bin/browse-edgar?action=getcompany&CIK={}&type={}&dateb=&owner=exclude&count=100".\
+            format(cik, form_type)
+
+        self._open_url_with_retry(url)
+
+        h1_tags = self.driver.find_elements_by_tag_name("h1")
+        if len(h1_tags) > 0:
+            if h1_tags[0].get_attribute("innerHTML").startswith("No matching CIK."):
                 raise util.SymbolNotFoundError
 
     def _click_next_page(self):
@@ -98,7 +151,7 @@ class SECWebReader:
                 description = cols[2].get_attribute('innerHTML')
                 interactive_data_link = cols[1].find_elements_by_id("interactiveDataBtn")
                 is_interactive = False
-                if(len(interactive_data_link) > 0):
+                if len(interactive_data_link) > 0:
                     is_interactive = True
                 
                 forms_10Q_data.append({"date": date,
@@ -109,7 +162,7 @@ class SECWebReader:
         
         return company_info_and_docs
 
-    def _find_raw_quarterly_reports_until_date(self, stock_symbol, date):
+    def _find_raw_quarterly_reports_until_date(self, stock_symbol, date, cik=None):
         """It searches the stock symbol, finds its documents and retrieves the raw information
         on the 10-Q forms until the specified date. Raw meaning the strings contain the information
         but need to be processed to get the data.
@@ -120,6 +173,8 @@ class SECWebReader:
             The symbol of the stock to search for.
         date: datetime.date
             Find documents going back to this date.
+        cik: str (optional)
+            CIK number. If provided it will be used instead of stock_symbol.
             
         returns
         ----------
@@ -127,25 +182,34 @@ class SECWebReader:
             contains company info, and 10-Q form dates and descriptions.
             
         """
-        self._search_company_ticker(stock_symbol)
-        company_info_and_docs = None
+        # @todo: wait until elements are available instead of hard wait times
+        if cik is None:
+            self._search_company_ticker(stock_symbol)
+
+            time.sleep(5)
+            cik = self._get_cik_number(self._find_quarterly_financial_reports_on_docs_page()["info"])
+
+        self._search_financial_forms_by_cik(cik, "10-Q")
         time.sleep(5)
+
+        company_info_and_docs = None
         
         while True:
             company_info_on_this_page = self._find_quarterly_financial_reports_on_docs_page()
             time.sleep(5)
             
             if company_info_and_docs is None:
-                company_info_and_docs ={ "info": company_info_on_this_page["info"],
+                company_info_and_docs = {"info": company_info_on_this_page["info"],
                                          "docs": company_info_on_this_page["forms_10Q"]}
                 
             else:
                 company_info_and_docs["docs"].extend(company_info_on_this_page["forms_10Q"])
-                
+
             # break if passed the date
-            last_date = company_info_and_docs["docs"][-1]["date"]
-            if datetime.date.fromisoformat(last_date) < date:
-                break
+            if len(company_info_and_docs["docs"]) > 0:
+                last_date = company_info_and_docs["docs"][-1]["date"]
+                if datetime.date.fromisoformat(last_date) < date:
+                    break
             
             # move to the next page
             last_page = not self._click_next_page()
@@ -172,9 +236,17 @@ class SECWebReader:
             accession number.
             
         """
-        access_num = util.extract_text_between_expressions(doc_description, "Acc-no:", "&nbsp")
+        print("doc_description: ", doc_description)
+        access_num = None
+        try:
+            access_num = util.extract_text_between_expressions(doc_description, "Acc-no:", "&nbsp")
+        except AssertionError:
+            access_num = util.extract_text_between_expressions(doc_description, "Acc-no: ", " ")
+
+        access_num = access_num.strip()
+        assert len(access_num) == 20
         
-        return access_num.strip()
+        return access_num
     
     def _get_cik_number(self, company_info):
         """It retreives the CIK number out of the company info string.
@@ -222,9 +294,9 @@ class SECWebReader:
                     
         return company_info_and_docs_processed
         
-    def find_quarterly_reports_until_date(self, stock_symbol, date):
+    def find_quarterly_reports_until_date(self, stock_symbol, date, cik=None):
         """ Gets the CIK number of the company and the accession number of the 10-Q forms going back
-        to date.
+        to date. If cik is provided it will be used instead of stock_symbol.
             
         parameters
         --------
@@ -232,6 +304,8 @@ class SECWebReader:
             stock symbol
         date: datetime.date
             Find the documents going back to this date.
+        cik: str (optional)
+            The CIK number. If provided it will be used instead of stock symbol.
         
         returns
         --------
@@ -241,10 +315,13 @@ class SECWebReader:
         
         """
         company_info_and_docs = \
-            self._find_raw_quarterly_reports_until_date(stock_symbol, date)
+            self._find_raw_quarterly_reports_until_date(stock_symbol, date, cik)
         
         company_info_and_docs_processed = \
             self._process_company_info_and_docs(company_info_and_docs)
+
+        if cik is not None:
+            assert int(company_info_and_docs_processed["info"]["cik"]) == int(cik)
         
         return company_info_and_docs_processed
 
@@ -263,8 +340,8 @@ class SECWebReader:
         url = self.url_base + \
             "/cgi-bin/viewer?action=view&cik={}&accession_number={}&xbrl_type=v".\
             format(str(int(cik_num)), acc_num)
-            
-        self.driver.get(url)
+
+        self._open_url_with_retry(url)
 
     def _get_raw_quarterly_financial_statements_from_the_interactive_page(self):
         """Assuming the interactive quarterly report is open in the browser, it sifts through and
@@ -277,6 +354,7 @@ class SECWebReader:
         """
         # financial statements button
         fs_element = self.driver.find_element_by_partial_link_text("Financial Statements")
+
         fs_element.click()
         
         time.sleep(5)
@@ -294,10 +372,16 @@ class SECWebReader:
         financial_statements = {}
 
         for i in range(len(fs_list)):
-            fs_list[i].click()
+            try:
+                fs_list[i].click()
+            except ElementNotInteractableException:
+                # The financial statement tab was closed, click to open it
+                fs_element.click()
+                time.sleep(2)
+                fs_list[i].click()
+
+            time.sleep(3)
             title = fs_list[i].find_element_by_tag_name("a").get_attribute("innerHTML")
-            
-            time.sleep(5)
             
             # financial statements data
             fs_data = fs_element.find_elements_by_xpath("../../../../../*")

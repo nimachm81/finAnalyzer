@@ -3,7 +3,7 @@ Some useful utility functions.
 
 """
 
-__all__ = ["SymbolNotFoundError",
+__all__ = ["SymbolNotFoundError", "PageLoadError",
            "extract_text_between_expressions"]
 
 
@@ -12,6 +12,10 @@ class SymbolNotFoundError(IOError):
 
 
 class BadFileVersionError(IOError):
+    pass
+
+
+class PageLoadError(IOError):
     pass
 
 
