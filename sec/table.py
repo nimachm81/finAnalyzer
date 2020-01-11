@@ -3,7 +3,7 @@ data structure for representing an HTML table
 
 """
 
-__all__ = ["CellType", "Cell"]
+__all__ = ["CellType", "Cell", "Row", "Table"]
 
 from enum import Enum
 import re
@@ -147,6 +147,15 @@ class Row:
         """
         return self.cells[cell_index].is_linked_cell()
 
+    def print(self):
+        """
+        Prints the cells data separated by white space
+        :return:
+        """
+        for cell in self.cells:
+            print(cell.get_data(), end="        ")
+        print()
+
 
 class Table:
     def __init__(self):
@@ -186,7 +195,7 @@ class Table:
                 cell_type = CellType.HEADER
 
                 assert s_th.find(">") >= 0
-                cell_data = s_th[s_th.find(">"):].strip()
+                cell_data = s_th[s_th.find(">") + 1:].strip()
 
                 cell = Cell(rowspan, colspan, cell_type)
                 cell.set_data(cell_data)
@@ -202,7 +211,7 @@ class Table:
                 cell_type = CellType.NORMAL
 
                 assert s_td.find(">") >= 0
-                cell_data = s_th[s_td.find(">"):].strip()
+                cell_data = s_td[s_td.find(">") + 1:].strip()
 
                 cell = Cell(rowspan, colspan, cell_type)
                 cell.set_data(cell_data)
@@ -234,7 +243,7 @@ class Table:
 
         return rowspan, colspan
 
-    def _extract_rows_from_tablecontent(self, table_content):
+    def read_tablecontent(self, table_content):
         """
         Processes the table content into a table, consisting a list of Row objects. Ignores links for multi-row cells
         (links will be constructed later and stored in self.rows_linked)
@@ -242,7 +251,15 @@ class Table:
         :param table_content:       html string of the table content
         :return:
         """
-        rows_str = re.findall("<tr.*</tr>", table_content)
+        rows_str = re.findall("<tr.*?</tr>", table_content)
 
         for row_str in rows_str:
             self.appendRow(self._htmlrow_to_rowobj(row_str))
+
+    def print(self):
+        """
+        Prints the table rows
+        :return:
+        """
+        for row in self.rows:
+            row.print()

@@ -7,8 +7,10 @@ __all__ = ["SECTableReader"]
 
 
 from sec.file_operations import SECFileOps
+from sec.table import Table
 
 from html.parser import HTMLParser
+
 
 
 class RawTableCleaner(HTMLParser):
@@ -77,6 +79,16 @@ class SECTableReader:
         for title in raw_data:
             cleared_tables[title] = self._remove_unnecessary_tags(raw_data[title])
         print(cleared_tables)
+
+        tables = {}
+        for title in cleared_tables:
+            table = Table()
+            table.read_tablecontent(cleared_tables[title])
+            tables[title] = table
+
+        for title in tables:
+            tables[title].print()
+
 
     def _extract_raw_table(self, expr):
         """ Extracts the string between "<table" and "/table>" i.e. the table from the raw html data.
