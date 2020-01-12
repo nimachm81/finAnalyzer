@@ -87,8 +87,8 @@ class SECTableReader:
             tables[title] = table
 
         for title in tables:
-            tables[title].print()
-
+            tables[title].setup_linked_rows()
+            tables[title].print(linked=True)
 
     def _extract_raw_table(self, expr):
         """ Extracts the string between "<table" and "/table>" i.e. the table from the raw html data.
