@@ -345,7 +345,7 @@ class SECFileOps:
 
         return symbols
 
-    def load_nasdaq_symbols(self):
+    def get_stored_nasdaq_symbols(self):
         """ Loads Nasdaq symbols from local storage.
 
         returns

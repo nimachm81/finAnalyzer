@@ -353,6 +353,8 @@ class SECWebReader:
             financial statements in araw html tables
         """
         # financial statements button
+        # @todo: look for multiple links and pick the closest to "Financial Statements",
+        # other candidates to drop: "Notes to Financial Statements"
         fs_element = self.driver.find_element_by_partial_link_text("Financial Statements")
 
         fs_element.click()

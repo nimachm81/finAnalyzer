@@ -336,69 +336,78 @@ class Table:
         multi_row_struct = -np.ones((num_row, num_col), dtype=int)
         link_indices = []
 
-        for i in range(len(self.rows)):
-            row_i = self.rows[i]
-            row_link_i = Row()
+        try:
+            for i in range(len(self.rows)):
+                last_treated_row = i
 
-            ind_col = 0
+                row_i = self.rows[i]
+                row_link_i = Row()
 
-            # if the multi_row_struct at this row starts with a non-negative number it means the first cell
-            # is a linked cell
-            if multi_row_struct[i, ind_col] >= 0:
-                assert  multi_row_struct[i, ind_col] < len(link_indices)
-                cell = Cell()
-                # rrow and cell index to link to
-                link_r, link_c = link_indices[multi_row_struct[i, ind_col]]
-                cell.link_to_cell(self.rows[link_r].get_cell(link_c))
-                row_link_i.append_cell(cell)
+                ind_col = 0
 
-            # increase the column index if the first few columns are linked
-            for j in range(num_col):
-                if multi_row_struct[i, j] == -1:
-                    break
-                else:
-                    ind_col += 1
-
-            # for each cell
-            for j in range(row_i.get_num_of_cells()):
-                # if it is a multi-row cell mark all the columns below the cell as linked columns (the first column is
-                # marked linked i.e. >=0 and the rest are marked to be  part of the first column i.e. -2)
-                if row_i.get_row_span(j) > 1:
-                    link_indices.append((i, j))          # ---> linked to row i cell j
-                    for p in range(1, row_i.get_row_span(j)):
-                        for q in range(row_i.get_col_span(j)):
-                            if q == 0:
-                                # check this index in link_indices to see which row and column to link to
-                                multi_row_struct[i + p, ind_col + q] = len(link_indices) - 1
-                            else:
-                                multi_row_struct[i + p, ind_col + q] = -2
-
-                # add the next cell if it is a normal cell
-                if multi_row_struct[i, ind_col] == -1:
-                    row_link_i.append_cell(row_i.get_cell(j))
-                # otherwise (it is a linked cell) create a linked cell
-                else:
-                    assert 0 <= multi_row_struct[i, ind_col] < len(link_indices)
+                # if the multi_row_struct at this row starts with a non-negative number it means the first cell
+                # is a linked cell
+                if multi_row_struct[i, ind_col] >= 0:
+                    assert  multi_row_struct[i, ind_col] < len(link_indices)
                     cell = Cell()
                     # rrow and cell index to link to
                     link_r, link_c = link_indices[multi_row_struct[i, ind_col]]
                     cell.link_to_cell(self.rows[link_r].get_cell(link_c))
                     row_link_i.append_cell(cell)
 
-                ind_col += row_i.get_col_span(j)
-
-                # adjust the column index based on the next column data i.e. increase it if the next one is linked
-                for k in range(ind_col, num_col):
-                    if multi_row_struct[i, k] == -1:
+                # increase the column index if the first few columns are linked
+                for j in range(num_col):
+                    if multi_row_struct[i, j] == -1:
                         break
                     else:
                         ind_col += 1
 
-            assert ind_col == num_col
-            self.rows_linked.append(row_link_i)
+                # for each cell
+                for j in range(row_i.get_num_of_cells()):
+                    # if it is a multi-row cell mark all the columns below the cell as linked columns (the first column is
+                    # marked linked i.e. >=0 and the rest are marked to be  part of the first column i.e. -2)
+                    if row_i.get_row_span(j) > 1:
+                        link_indices.append((i, j))          # ---> linked to row i cell j
+                        for p in range(1, row_i.get_row_span(j)):
+                            for q in range(row_i.get_col_span(j)):
+                                if q == 0:
+                                    # check this index in link_indices to see which row and column to link to
+                                    multi_row_struct[i + p, ind_col + q] = len(link_indices) - 1
+                                else:
+                                    multi_row_struct[i + p, ind_col + q] = -2
 
-        print(multi_row_struct)
-        print(link_indices)
+                    # add the next cell if it is a normal cell
+                    if multi_row_struct[i, ind_col] == -1:
+                        row_link_i.append_cell(row_i.get_cell(j))
+                    # otherwise (it is a linked cell) create a linked cell
+                    else:
+                        assert 0 <= multi_row_struct[i, ind_col] < len(link_indices)
+                        cell = Cell()
+                        # rrow and cell index to link to
+                        link_r, link_c = link_indices[multi_row_struct[i, ind_col]]
+                        cell.link_to_cell(self.rows[link_r].get_cell(link_c))
+                        row_link_i.append_cell(cell)
+
+                    ind_col += row_i.get_col_span(j)
+
+                    # adjust the column index based on the next column data i.e. increase it if the next one is linked
+                    for k in range(ind_col, num_col):
+                        if multi_row_struct[i, k] == -1:
+                            break
+                        else:
+                            ind_col += 1
+
+                if ind_col == num_col:
+                    self.rows_linked.append(row_link_i)
+                else:
+                    # normally raised when the number of columns change, normally in the footnote section
+                    break
+        except IndexError as e:
+            # normally raised when the number of columns change, normally in the footnote section
+            pass
+
+        # print(multi_row_struct)
+        # print(link_indices)
 
     def print(self, linked=False):
         """

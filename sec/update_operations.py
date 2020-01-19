@@ -79,7 +79,7 @@ class SECUpdateOps:
         if update:
             self.sec_file_ops.update_nasdaq_symbols()
 
-        symbols = self.sec_file_ops.load_nasdaq_symbols()
+        symbols = self.sec_file_ops.get_stored_nasdaq_symbols()
 
         # @todo: convention: convert symbol names to uppercase
         return symbols

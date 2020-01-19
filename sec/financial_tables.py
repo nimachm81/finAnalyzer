@@ -47,19 +47,19 @@ class RawTableCleaner(HTMLParser):
                     attr += ' {}:{} '.format(att, attr_dic[att])
 
             self.table += "<{}{}>".format(tag, attr)
-            print("<{}{}>".format(tag, attr), end="    ")
+            # print("<{}{}>".format(tag, attr), end="    ")
 
     def handle_endtag(self, tag):
         """Keep only the td, tr and th tags."""
         if tag in ["td", "tr", "th"]:
             self.table += "</{}>".format(tag)
-            print("</{}>".format(tag))
+            # print("</{}>".format(tag))
 
     def handle_data(self, data):
         """Strip the white spaces at the front and back of each data."""
         if len(data.strip()) > 0:
             self.table += data
-            print(data, end="    ")
+            # print(data, end="    ")
 
 
 class SECTableReader:
@@ -70,11 +70,7 @@ class SECTableReader:
         self.sec_file_ops = SECFileOps(data_folder)
 
         folders = self.sec_file_ops.get_all_folders()
-        print("folders: \n", folders)
-
-        symbol = "amd"
-        dates = self.get_quarterly_report_dates(symbol)
-        tables = self.get_quarterly_report_tables(symbol, dates[-1])
+        # print("folders: \n", folders)
 
     def _extract_raw_table(self, expr):
         """ Extracts the string between "<table" and "/table>" i.e. the table from the raw html data.
@@ -157,7 +153,7 @@ class SECTableReader:
         cleared_tables = {}
         for title in raw_data:
             cleared_tables[title] = self._remove_unnecessary_tags(raw_data[title])
-        print(cleared_tables)
+        # print(cleared_tables)
 
         tables = {}
         for title in cleared_tables:
@@ -167,6 +163,6 @@ class SECTableReader:
 
         for title in tables:
             tables[title].setup_linked_rows()
-            tables[title].print(linked=True)
+            # tables[title].print(linked=True)
 
         return tables
