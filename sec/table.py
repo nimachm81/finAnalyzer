@@ -364,8 +364,8 @@ class Table:
 
                 # for each cell
                 for j in range(row_i.get_num_of_cells()):
-                    # if it is a multi-row cell mark all the columns below the cell as linked columns (the first column is
-                    # marked linked i.e. >=0 and the rest are marked to be  part of the first column i.e. -2)
+                    # if it is a multi-row cell mark all the columns below the cell as linked columns (the first column
+                    # is marked linked i.e. >=0 and the rest are marked to be  part of the first column i.e. -2)
                     if row_i.get_row_span(j) > 1:
                         link_indices.append((i, j))          # ---> linked to row i cell j
                         for p in range(1, row_i.get_row_span(j)):
