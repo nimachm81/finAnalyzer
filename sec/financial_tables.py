@@ -12,8 +12,10 @@ from sec.table import Table
 from html.parser import HTMLParser
 
 
-
 class RawTableCleaner(HTMLParser):
+    """
+    This class is used to remove noise attributes and unwanted data from html tags
+    """
     def __init__(self):
         HTMLParser.__init__(self)
         self.table = ""
@@ -61,34 +63,18 @@ class RawTableCleaner(HTMLParser):
 
 
 class SECTableReader:
+    """
+    It extracts readable tables from saved financial statemments
+    """
     def __init__(self, data_folder):
         self.sec_file_ops = SECFileOps(data_folder)
 
         folders = self.sec_file_ops.get_all_folders()
         print("folders: \n", folders)
 
-        stock_ind = 0
-
-        dates = self.sec_file_ops.get_dates_of_saved_raw_quarterly_financial_statements(folders[stock_ind])
-        print("dates: \n", dates)
-
-        raw_data = self.sec_file_ops.get_raw_quarterly_financial_statement(folders[stock_ind], dates[-1])
-        print("raw data: \n", raw_data)
-
-        cleared_tables = {}
-        for title in raw_data:
-            cleared_tables[title] = self._remove_unnecessary_tags(raw_data[title])
-        print(cleared_tables)
-
-        tables = {}
-        for title in cleared_tables:
-            table = Table()
-            table.read_tablecontent(cleared_tables[title])
-            tables[title] = table
-
-        for title in tables:
-            tables[title].setup_linked_rows()
-            tables[title].print(linked=True)
+        symbol = "amd"
+        dates = self.get_quarterly_report_dates(symbol)
+        tables = self.get_quarterly_report_tables(symbol, dates[-1])
 
     def _extract_raw_table(self, expr):
         """ Extracts the string between "<table" and "/table>" i.e. the table from the raw html data.
@@ -136,35 +122,51 @@ class SECTableReader:
 
         return parser.table
 
-    def _get_table_rows(self, table_content):
-        """ It takes the table content in the form
-        <tr> ... </tr><tr> ... </tr>      ...      <tr> ... </tr>
-        and extract the string between <tr> tags.
+    def get_quarterly_report_dates(self, symbol):
+        """It finds the dates of the saved quarterly reports
 
         parameters
         --------
-        table_content: str
-            table content starting with <tr> and ending wit </tr>
-        :return:
+        symbol: str
+            the stock symbol
+
+        returns
+        --------
+        : list
+            reported dates
         """
-        rows = []
-        ind_row = 0
-        while True:
-            row_tag = "<tr>"
-            ind_st = table_content.find(row_tag, ind_row)
-            assert ind_st >= 0
-            ind_st += len(row_tag)
+        return self.sec_file_ops.get_dates_of_saved_raw_quarterly_financial_statements(symbol)
 
-            row_tag_close = "<tr>"
-            ind_end = table_content.find(row_tag_close)
-            assert ind_end >= 0
+    def get_quarterly_report_tables(self, symbol, date):
+        """ It extracts the quarterly report tables for the given symbol at the given date
 
-            ind_row = ind_end + len(row_tag_close)
+        parameters
+        --------
+        symbol: str
+            the stock symbol
+        date: datetime.date
+            the report date
 
-            rows.append(table_content[ind_st: ind_end])
+        returns
+        --------
+        : dict
+            {statement_title: table}
+        """
+        raw_data = self.sec_file_ops.get_raw_quarterly_financial_statement(symbol, date)
 
-            if ind_row >= len(table_content):
-                break
+        cleared_tables = {}
+        for title in raw_data:
+            cleared_tables[title] = self._remove_unnecessary_tags(raw_data[title])
+        print(cleared_tables)
 
-        return rows
+        tables = {}
+        for title in cleared_tables:
+            table = Table()
+            table.read_tablecontent(cleared_tables[title])
+            tables[title] = table
 
+        for title in tables:
+            tables[title].setup_linked_rows()
+            tables[title].print(linked=True)
+
+        return tables

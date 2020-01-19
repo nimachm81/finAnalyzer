@@ -320,7 +320,7 @@ class Table:
 
     def setup_linked_rows(self):
         """
-        Sets up linked rows: multi-row cells are copied to the rows beneth in the form of linked_cells i.e.
+        Sets up linked rows: multi-row cells are copied to the rows beneath in the form of linked_cells i.e.
         the corresponding cell in the following row keeps a copy of the cell above and sets its own data to None
         :return:
         """
