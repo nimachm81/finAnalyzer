@@ -409,6 +409,72 @@ class Table:
         # print(multi_row_struct)
         # print(link_indices)
 
+    def get_titlecell(self):
+        """
+        Get the content of the first cell
+        :return:
+        """
+        assert self.rows_linked is not None
+        if len(self.rows_linked) > 0:
+            return self.rows_linked[0].get_cell(0)
+        return None
+
+    def get_column_titles(self):
+        """
+        Get the label of each column
+        :return: list       [[col_0 labels], [col_1 labels]... ]
+        """
+        assert self.rows_linked is not None
+        num_cols = self.get_num_of_columns()
+        col_titles = [None] * num_cols
+        for i in range(num_cols):
+            col_titles[i] = []
+
+        row_0 = self.rows_linked[0]
+
+        for ind_row in range(row_0.get_row_span(0)):
+            row = self.rows_linked[ind_row]
+            ind_col = 0
+            for i in range(row.get_num_of_cells()):
+                col_span = row.get_col_span(i)
+
+                for j in range(col_span):
+                    cell_data = row.get_cell_data(i)
+                    col_titles[ind_col + j].append(cell_data)
+
+                ind_col += col_span
+
+        return col_titles
+
+    def find_rows_with_keywords(self, has, has_not=[], ind_start=1):
+        """
+        Finds the rows that have (do not have) the specified keywords in the first cell
+        :param has: list            a list of str keywords that the row title must have
+        :param has_not: list        a list of str keywords that the row title must not have
+        :param ind_start:           skip the first few rows
+        :return:
+        """
+        assert self.rows_linked is not None
+        rows_out = []
+        for row in self.rows_linked:
+            cell_0_data = row.get_cell_data(0)
+            if cell_0_data is None:
+                continue
+
+            passed = True
+            for key_include in has:
+                if key_include not in cell_0_data.lower():
+                    passed = False
+                    break
+            for key_exlude in has_not:
+                if key_exlude in cell_0_data.lower():
+                    passed = False
+                    break
+            if passed:
+                rows_out.append(row)
+
+        return rows_out
+
     def print(self, linked=False):
         """
         Prints the table rows

@@ -354,6 +354,7 @@ class SECWebReader:
         """
         # financial statements button
         # @todo: look for multiple links and pick the closest to "Financial Statements",
+        # @todo: some pages do not contain "Financial Statements" and are to be skipped
         # other candidates to drop: "Notes to Financial Statements"
         fs_element = self.driver.find_element_by_partial_link_text("Financial Statements")
 

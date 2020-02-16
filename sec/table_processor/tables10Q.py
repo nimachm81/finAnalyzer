@@ -2,11 +2,13 @@
 Processes 10-Q tables
 """
 
+__all__ = ["Tables10Q"]
+
 from sec.table import Table, CellType
 from sec.util import CorruptDaraError
 
 
-class Tables_10Q:
+class Tables10Q:
     def __init__(self, tables):
         self.tables = tables
         self.statement_of_operation_table = self._find_statement_of_operation_table()
@@ -18,9 +20,9 @@ class Tables_10Q:
 
         :return: (Table)            the table corresponding to statement of operation or None if it was not found
         """
-        for title in tables.keys():
-            title = title.lower()
-            if "statement" in title and "operation" in title and "parenthetical" not in title:
+        for title in self.tables.keys():
+            title_lc = title.lower()
+            if "statement" in title_lc and "operation" in title_lc and "parenthetical" not in title_lc:
                 return self.tables[title]
         return None
 
@@ -29,10 +31,10 @@ class Tables_10Q:
 
         :return: (Table)            the table corresponding to statement of income or None if it was not found
         """
-        for title in tables.keys():
-            title = title.lower()
-            if "statement" in title and ("income" in title or "earning" in title or "loss" in title) \
-                    and "parenthetical" not in title:
+        for title in self.tables.keys():
+            title_lc = title.lower()
+            if "statement" in title_lc and ("income" in title_lc or "earning" in title_lc or "loss" in title_lc) \
+                    and "parenthetical" not in title_lc:
                 return self.tables[title]
         return None
 
@@ -41,14 +43,25 @@ class Tables_10Q:
 
         :return: (Table)            the table corresponding to balance sheets or None if it was not found
         """
-        for title in tables.keys():
-            title = title.lower()
-            if "sheet" in title and "balance" in title and "parenthetical" not in title:
+        for title in self.tables.keys():
+            title_lc = title.lower()
+            if "sheet" in title_lc and "balance" in title_lc and "parenthetical" not in title_lc:
                 return self.tables[title]
         return None
 
     def get_net_income(self):
-        pass
+        """
+        It tries to find the net income
+        :return:
+        """
+        if self.statement_of_income_table:
+            rows_net_income = self.statement_of_income_table.find_rows_with_keywords(has=["net", "income"])
+            for row in rows_net_income:
+                row.print()
+        elif self.statement_of_operation_table:
+            rows_net_income = self.statement_of_operation_table.find_rows_with_keywords(has=["net", "income"])
+            for row in rows_net_income:
+                row.print()
 
     def get_total_assets(self):
         pass
