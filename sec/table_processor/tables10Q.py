@@ -5,7 +5,7 @@ Processes 10-Q tables
 __all__ = ["Tables10Q"]
 
 from sec.table import Table, CellType
-from sec.util import CorruptDaraError
+from sec.util import CorruptDaraError, find_dollar_units
 
 
 class Tables10Q:
@@ -58,10 +58,14 @@ class Tables10Q:
             rows_net_income = self.statement_of_income_table.find_rows_with_keywords(has=["net", "income"])
             for row in rows_net_income:
                 row.print()
+            dollar_unit = find_dollar_units(self.statement_of_income_table.get_titlecell().get_data())
+            print("dollar_unit: ", dollar_unit)
         elif self.statement_of_operation_table:
             rows_net_income = self.statement_of_operation_table.find_rows_with_keywords(has=["net", "income"])
             for row in rows_net_income:
                 row.print()
+            dollar_unit = find_dollar_units(self.statement_of_operation_table.get_titlecell().get_data())
+            print("dollar_unit: ", dollar_unit)
 
     def get_total_assets(self):
         pass

@@ -71,7 +71,30 @@ def print_qurterly_table_titles():
     print("no_statement_of_operation_or_income: ", no_statement_of_operation_or_income)
 
 
+def peint_quarterly_net_incomes():
+    sec_tables = SECTableReader("/Users/chamanara/CompanyData/us")
+    file_ops = SECFileOps("/Users/chamanara/CompanyData/us")
+
+    symbols = file_ops.get_stored_nasdaq_symbols().index
+
+    print(symbols)
+    corrupt_data = []
+
+    for symbol in symbols:
+        dates = sec_tables.get_quarterly_report_dates(symbol)
+        for date in dates:
+            print(symbol, date, end="  \n")
+            try:
+                _10qtables = get_stock_10q_tables(symbol, date)
+                _10qtables.get_net_income()
+            except:
+                corrupt_data.append([symbol, date])
+
+    print("corrupt_data: ", corrupt_data)
+
+
 def main():
+    """
     # no SOP or SOI: [['AMP', datetime.date(2018, 11, 5)], ['ARES', datetime.date(2014, 6, 10)], ['BSX', datetime.date(2019, 4, 29)], ['CIR', datetime.date(2019, 8, 1)], ['CIR', datetime.date(2019, 11, 13)], ['CVNA', datetime.date(2017, 6, 6)], ['CWH', datetime.date(2016, 11, 10)], ['DX', datetime.date(2019, 5, 3)], ['EGRX', datetime.date(2019, 5, 7)], ['EIG', datetime.date(2015, 4, 30)], ['EVA', datetime.date(2015, 6, 8)], ['FG', datetime.date(2018, 5, 9)], ['FG', datetime.date(2018, 8, 9)], ['FG', datetime.date(2018, 11, 7)], ['FG', datetime.date(2019, 5, 7)], ['FG', datetime.date(2019, 8, 7)], ['FG', datetime.date(2019, 11, 6)], ['FOCS', datetime.date(2018, 8, 28)], ['GYRO', datetime.date(2016, 5, 13)], ['GYRO', datetime.date(2016, 8, 10)], ['GYRO', datetime.date(2016, 11, 14)], ['GYRO', datetime.date(2017, 5, 11)], ['GYRO', datetime.date(2017, 8, 10)], ['GYRO', datetime.date(2017, 11, 9)], ['GYRO', datetime.date(2018, 5, 11)], ['GYRO', datetime.date(2018, 8, 9)], ['GYRO', datetime.date(2018, 11, 9)], ['GYRO', datetime.date(2019, 5, 10)], ['GYRO', datetime.date(2019, 8, 14)], ['GYRO', datetime.date(2019, 11, 14)], ['HGH', datetime.date(2019, 8, 1)], ['HGH', datetime.date(2019, 11, 4)], ['HIG', datetime.date(2019, 8, 1)], ['HIG', datetime.date(2019, 11, 4)], ['JCP', datetime.date(2019, 8, 28)], ['JLL', datetime.date(2019, 8, 7)], ['JLL', datetime.date(2019, 11, 6)], ['KN', datetime.date(2019, 7, 31)], ['KN', datetime.date(2019, 10, 28)]]
     tables_10q = get_stock_10q_tables("amd", date=None)
     for title, table in tables_10q.tables.items():
@@ -80,6 +103,9 @@ def main():
         col_titles = table.get_column_titles()
         print(col_titles)
     tables_10q.get_net_income()
+    """
+
+    peint_quarterly_net_incomes()
 
     # print_qurterly_table_titles()
 
